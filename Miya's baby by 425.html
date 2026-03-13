@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>小小蚁国资源与荣誉计算器</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 12px;
+      text-align: center;
+    }
+    h2 {
+      font-size: 17px;
+      margin: 0 0 10px;
+    }
+    .desc, .tip, .footer-note {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    label {
+      font-size: 13px;
+      color: #444;
+    }
+    input, button, textarea, select {
+      font-size: 16px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d9dfeb;
+      border-radius: 10px;
+      outline: none;
+      background: #fff;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: #4a90e2;
+    }
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+      width: 100%;
+      font-weight: 600;
+    }
+    .btn-light {
+      background: #f4f6fb;
+      color: #333;
+      font-weight: 600;
+    }
+    .summary-item {
+      padding: 8px 0;
+      border-bottom: 1px dashed #eceff5;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    .summary-item:last-child {
+      border-bottom: none;
+    }
+    .full {
+      color: #16a34a;
+      font-weight: 600;
+    }
+    .warn {
+      color: #d97706;
+      font-weight: 600;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 12px;
+      border: 1px solid #e5eaf3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 420px;
+      background: white;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #edf1f7;
+      text-align: center;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    th {
+      background: #f7faff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .muted {
+      color: #888;
+    }
+    @media (max-width: 560px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      h1 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>小小蚁国资源与荣誉计算器</h1>
+      <div class="desc">
+        支持体力自动恢复规则、单菌固定规则恢复、次日09:00不溢出消耗计算，以及荣誉值动态扩容规划。
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label>当前时间</label>
+          <input type="datetime-local" id="currentTime" step="1" />
+        </div>
+        <div class="field">
+          <label>预测未来多少小时</label>
+          <input type="number" id="forecastHours" value="24" min="1" max="168" />
+        </div>
+      </div>
+
+      <div class="row-actions">
+        <button class="btn-light" id="btnFillNow">填入当前时间</button>
+        <button class="btn-light" id="btnSave">手动保存</button>
+        <button class="btn-light" id="btnReset">清空重置</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>体力设置</h2>
+      <div class="grid">
+        <div class="field">
+          <label>当前体力</label>
+          <input type="number" id="staminaCurrent" value="80" min="0" />
+        </div>
+        <div class="field">
+          <label>体力上限</label>
+          <input type="number" id="staminaMax" value="100" min="1" />
+        </div>
+        <div class="field">
+          <label>恢复速度（多少秒恢复 1 点）</label>
+          <input type="number" id="staminaCycle" value="360" min="1" />
+        </div>
+      </div>
+      <div class="tip">
+        自动规则：体力上限 1400 自动代入 111 秒/点；1312 和 1316 自动代入 112 秒/点；其他上限保持手动输入。
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>菌设置</h2>
+      <div class="grid">
+        <div class="field">
+          <label>当前菌数量</label>
+          <input type="number" id="fungusCurrent" value="0" min="0" step="0.1" />
+        </div>
+        <div class="field">
+          <label>菌上限</label>
+          <select id="fungusMax">
+            <option value="76.8">76.8</option>
+            <option value="120">120</option>
+            <option value="124.8">124.8</option>
+            <option value="129.6">129.6</option>
+            <option value="134.4">134.4</option>
+            <option value="139.2">139.2</option>
+            <option value="144">144</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>每小时恢复速度</label>
+          <input type="text" id="fungusRecoveryPerHour" readonly />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>荣誉值设置</h2>
+      <div class="grid">
+        <div class="field">
+          <label>当前荣誉值</label>
+          <input type="number" id="honorCurrent" value="0" min="0" />
+        </div>
+        <div class="field">
+          <label>当前群落上限</label>
+          <input type="number" id="honorCapacity" value="0" min="0" />
+        </div>
+        <div class="field">
+          <label>目标荣誉值</label>
+          <select id="honorTarget">
+            <option value="20000">20000</option>
+            <option value="40000" selected>40000</option>
+            <option value="100000">100000</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label>7级群落数量</label>
+          <input type="number" id="group7" value="0" min="0" />
+        </div>
+        <div class="field">
+          <label>8级群落数量</label>
+          <input type="number" id="group8" value="0" min="0" />
+        </div>
+        <div class="field">
+          <label>9级群落数量</label>
+          <input type="number" id="group9" value="0" min="0" />
+        </div>
+        <div class="field">
+          <label>10级群落数量</label>
+          <input type="number" id="group10" value="0" min="0" />
+        </div>
+        <div class="field">
+          <label>11级群落数量</label>
+          <input type="number" id="group11" value="0" min="0" />
+        </div>
+      </div>
+      <div class="tip">
+        规则：以玩家当前输入的荣誉值与当前群落上限为起点；之后每跨过下一个 2000 整数节点，群落上限 +2。
+      </div>
+    </div>
+
+    <div class="card">
+      <button class="btn-primary" id="btnCalculate">开始计算</button>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none;">
+      <h2>恢复结果</h2>
+      <div id="summary"></div>
+      <div class="table-wrap">
+        <table id="resultTable"></table>
+      </div>
+      <div class="footer-note">
+        体力按固定秒数恢复 1 点；菌按每小时速度线性恢复；表格展示未来每个整点预测值。
+      </div>
+    </div>
+
+    <div class="card" id="honorCard" style="display:none;">
+      <h2>荣誉值方案</h2>
+      <div id="honorSummary"></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'antKingdomCalculatorFinalV4';
+
+    const fungusRecoveryMap = {
+      "76.8": 1.6,
+      "120": 2.5,
+      "124.8": 2.6,
+      "129.6": 2.7,
+      "134.4": 2.8,
+      "139.2": 2.9,
+      "144": 3.0
+    };
+
+    const staminaAutoMap = {
+      "1400": 111,
+      "1312": 112,
+      "1316": 112
+    };
+
+    function pad(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function toLocalInputValue(date) {
+      const y = date.getFullYear();
+      const m = pad(date.getMonth() + 1);
+      const d = pad(date.getDate());
+      const hh = pad(date.getHours());
+      const mm = pad(date.getMinutes());
+      const ss = pad(date.getSeconds());
+      return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
+    }
+
+    function formatDateTime(date, withSeconds = true) {
+      const y = date.getFullYear();
+      const m = pad(date.getMonth() + 1);
+      const d = pad(date.getDate());
+      const hh = pad(date.getHours());
+      const mm = pad(date.getMinutes());
+      const ss = pad(date.getSeconds());
+      return withSeconds
+        ? `${y}-${m}-${d} ${hh}:${mm}:${ss}`
+        : `${y}-${m}-${d} ${hh}:00`;
+    }
+
+    function nextWholeHour(date) {
+      const d = new Date(date);
+      d.setMinutes(0, 0, 0);
+      d.setHours(d.getHours() + 1);
+      return d;
+    }
+
+    function getNextDayNine(date) {
+      const d = new Date(date);
+      d.setDate(d.getDate() + 1);
+      d.setHours(9, 0, 0, 0);
+      return d;
+    }
+
+    function secondsDiff(a, b) {
+      return Math.floor((b - a) / 1000);
+    }
+
+    function updateFungusRecovery() {
+      const max = document.getElementById('fungusMax').value;
+      const recovery = fungusRecoveryMap[max];
+      document.getElementById('fungusRecoveryPerHour').value = recovery ? `${recovery} / 小时` : '无规则';
+      saveData();
+    }
+
+    function updateStaminaCycle() {
+      const max = document.getElementById('staminaMax').value;
+      const auto = staminaAutoMap[max];
+      const cycleInput = document.getElementById('staminaCycle');
+      if (auto) {
+        cycleInput.value = auto;
+      }
+      saveData();
+    }
+
+    function calcStaminaValueAt(stamina, startTime, targetTime) {
+      const passedSeconds = secondsDiff(startTime, targetTime);
+      if (stamina.current >= stamina.max) return stamina.max;
+      if (stamina.cycle <= 0) return stamina.current;
+      if (passedSeconds < 0) return stamina.current;
+
+      const gain = Math.floor(passedSeconds / stamina.cycle);
+      return Math.min(stamina.max, stamina.current + gain);
+    }
+
+    function calcStaminaFullTime(stamina, startTime) {
+      if (stamina.current >= stamina.max) return '已满';
+      if (stamina.cycle <= 0) return '无法恢复';
+
+      const need = stamina.max - stamina.current;
+      const fullDate = new Date(startTime.getTime() + need * stamina.cycle * 1000);
+      return formatDateTime(fullDate, true);
+    }
+
+    function calcStaminaNeedConsumeByNext9(stamina, startTime) {
+      const next9 = getNextDayNine(startTime);
+      const passedSeconds = secondsDiff(startTime, next9);
+      const gain = Math.floor(passedSeconds / stamina.cycle);
+      return Math.max(0, stamina.current + gain - stamina.max);
+    }
+
+    function calcStaminaValueAtNext9(stamina, startTime) {
+      const next9 = getNextDayNine(startTime);
+      return calcStaminaValueAt(stamina, startTime, next9);
+    }
+
+    function calcFungusValueAt(current, max, recoveryPerHour, startTime, targetTime) {
+      const passedMs = targetTime - startTime;
+      const passedHours = passedMs / 3600000;
+      const value = current + passedHours * recoveryPerHour;
+      return Math.min(max, value);
+    }
+
+    function calcFungusFullTime(current, max, recoveryPerHour, startTime) {
+      if (current >= max) return '已满';
+      if (!recoveryPerHour || recoveryPerHour <= 0) return '无法恢复';
+
+      const need = max - current;
+      const hours = need / recoveryPerHour;
+      const fullDate = new Date(startTime.getTime() + hours * 3600000);
+      return formatDateTime(fullDate, true);
+    }
+
+    function calcFungusNeedConsumeByNext9(current, max, recoveryPerHour, startTime) {
+      const next9 = getNextDayNine(startTime);
+      const passedHours = (next9 - startTime) / 3600000;
+      const predicted = current + passedHours * recoveryPerHour;
+      return Math.max(0, predicted - max);
+    }
+
+    function calcFungusValueAtNext9(current, max, recoveryPerHour, startTime) {
+      const next9 = getNextDayNine(startTime);
+      return calcFungusValueAt(current, max, recoveryPerHour, startTime, next9);
+    }
+
+    function getNextHonorThreshold(honor) {
+      return (Math.floor(honor / 2000) + 1) * 2000;
+    }
+
+    function calculateHonorPlanDynamic(currentHonor, currentCapacity, targetHonor, countsInput) {
+      const gainMap = { 7: 130, 8: 115, 9: 100, 10: 75 };
+      const counts = {
+        7: countsInput[7] || 0,
+        8: countsInput[8] || 0,
+        9: countsInput[9] || 0,
+        10: countsInput[10] || 0,
+        11: countsInput[11] || 0
+      };
+
+      const result = {
+        replaceDetail: { 7: 0, 8: 0, 9: 0, 10: 0 },
+        added11: 0,
+        capacityAdded: 0,
+        finalHonor: currentHonor,
+        finalCapacity: currentCapacity,
+        reached: false,
+        remaining: 0,
+        nextThresholdStart: getNextHonorThreshold(currentHonor)
+      };
+
+      let honor = currentHonor;
+      let capacity = currentCapacity;
+      let occupied = counts[7] + counts[8] + counts[9] + counts[10] + counts[11];
+      let nextThreshold = getNextHonorThreshold(honor);
+
+      function applyCapacityGrowth() {
+        while (honor >= nextThreshold) {
+          capacity += 2;
+          result.capacityAdded += 2;
+          nextThreshold += 2000;
+        }
+      }
+
+      function fillNewSlotsWith11() {
+        let changed = true;
+        while (changed) {
+          changed = false;
+          applyCapacityGrowth();
+
+          while (occupied < capacity && honor < targetHonor) {
+            occupied += 1;
+            counts[11] += 1;
+            honor += 150;
+            result.added11 += 1;
+            changed = true;
+            applyCapacityGrowth();
+          }
+        }
+      }
+
+      fillNewSlotsWith11();
+
+      for (const level of [7, 8, 9, 10]) {
+        while (counts[level] > 0 && honor < targetHonor) {
+          counts[level] -= 1;
+          counts[11] += 1;
+          honor += gainMap[level];
+          result.replaceDetail[level] += 1;
+
+          applyCapacityGrowth();
+          fillNewSlotsWith11();
+        }
+
+        if (honor >= targetHonor) break;
+      }
+
+      result.finalHonor = honor;
+      result.finalCapacity = capacity;
+      result.reached = honor >= targetHonor;
+      result.remaining = Math.max(0, targetHonor - honor);
+      result.finalOccupied = occupied;
+      result.nextThresholdEnd = nextThreshold;
+
+      return result;
+    }
+
+    function getFormData() {
+      return {
+        currentTime: document.getElementById('currentTime').value,
+        forecastHours: Number(document.getElementById('forecastHours').value),
+        stamina: {
+          current: Number(document.getElementById('staminaCurrent').value),
+          max: Number(document.getElementById('staminaMax').value),
+          cycle: Number(document.getElementById('staminaCycle').value)
+        },
+        fungus: {
+          current: Number(document.getElementById('fungusCurrent').value),
+          max: Number(document.getElementById('fungusMax').value),
+          recoveryPerHour: fungusRecoveryMap[document.getElementById('fungusMax').value]
+        },
+        honor: {
+          current: Number(document.getElementById('honorCurrent').value),
+          capacity: Number(document.getElementById('honorCapacity').value),
+          target: Number(document.getElementById('honorTarget').value),
+          counts: {
+            7: Number(document.getElementById('group7').value),
+            8: Number(document.getElementById('group8').value),
+            9: Number(document.getElementById('group9').value),
+            10: Number(document.getElementById('group10').value),
+            11: Number(document.getElementById('group11').value)
+          }
+        }
+      };
+    }
+
+    function validateData(data) {
+      if (!data.currentTime) return '请先填写当前时间';
+      if (!data.forecastHours || data.forecastHours <= 0) return '预测小时数必须大于 0';
+
+      const s = data.stamina;
+      if ([s.current, s.max, s.cycle].some(v => Number.isNaN(v))) return '体力数据填写不完整';
+      if (s.current < 0 || s.max <= 0 || s.cycle <= 0) return '体力数据不合法';
+      if (s.current > s.max) return '当前体力不能大于上限';
+
+      const f = data.fungus;
+      if ([f.current, f.max].some(v => Number.isNaN(v))) return '菌数据填写不完整';
+      if (f.current < 0 || f.max <= 0) return '菌数据不合法';
+      if (f.current > f.max) return '当前菌数量不能大于上限';
+      if (!fungusRecoveryMap[String(f.max)]) return '菌上限必须为固定规则值';
+
+      const h = data.honor;
+      if ([h.current, h.capacity, h.target].some(v => Number.isNaN(v))) return '荣誉值填写不完整';
+      if (h.current < 0 || h.capacity < 0 || h.target < 0) return '荣誉值和群落上限不能小于 0';
+
+      let occupied = 0;
+      for (const level of [7, 8, 9, 10, 11]) {
+        if (Number.isNaN(h.counts[level]) || h.counts[level] < 0) return `群落等级 ${level} 的数量不合法`;
+        occupied += h.counts[level];
+      }
+
+      if (occupied > h.capacity) return '当前群落总数不能大于当前群落上限';
+
+      return '';
+    }
+
+    function renderSummary(data, startTime) {
+      const staminaFull = calcStaminaFullTime(data.stamina, startTime);
+      const staminaNext9Value = calcStaminaValueAtNext9(data.stamina, startTime);
+      const staminaNeedConsume = calcStaminaNeedConsumeByNext9(data.stamina, startTime);
+
+      const fungusFull = calcFungusFullTime(
+        data.fungus.current,
+        data.fungus.max,
+        data.fungus.recoveryPerHour,
+        startTime
+      );
+      const fungusNext9Value = calcFungusValueAtNext9(
+        data.fungus.current,
+        data.fungus.max,
+        data.fungus.recoveryPerHour,
+        startTime
+      );
+      const fungusNeedConsume = calcFungusNeedConsumeByNext9(
+        data.fungus.current,
+        data.fungus.max,
+        data.fungus.recoveryPerHour,
+        startTime
+      );
+
+      const next9 = getNextDayNine(startTime);
+
+      document.getElementById('summary').innerHTML = `
+        <div class="summary-item">
+          <strong>体力</strong>：当前 ${data.stamina.current} / ${data.stamina.max}；
+          恢复速度：${data.stamina.cycle} 秒 / 1 点；
+          回满时间：<span class="full">${staminaFull}</span>
+        </div>
+        <div class="summary-item">
+          <strong>到次日 09:00</strong>（${formatDateTime(next9, true)}）：
+          预计体力 <span class="full">${staminaNext9Value}</span>；
+          若不想溢出，现在还需提前消耗 <span class="warn">${staminaNeedConsume}</span> 点体力
+        </div>
+        <div class="summary-item">
+          <strong>菌</strong>：当前 ${data.fungus.current} / ${data.fungus.max}；
+          恢复速度：${data.fungus.recoveryPerHour} / 小时；
+          回满时间：<span class="full">${fungusFull}</span>
+        </div>
+        <div class="summary-item">
+          <strong>到次日 09:00</strong>（${formatDateTime(next9, true)}）：
+          预计菌数量 <span class="full">${fungusNext9Value.toFixed(1)}</span>；
+          若不想溢出，现在还需提前消耗 <span class="warn">${fungusNeedConsume.toFixed(1)}</span>
+        </div>
+      `;
+    }
+
+    function renderTable(data, startTime) {
+      const table = document.getElementById('resultTable');
+      let html = `
+        <thead>
+          <tr>
+            <th>时间</th>
+            <th>体力</th>
+            <th>菌</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      const firstHour = nextWholeHour(startTime);
+
+      for (let i = 0; i < data.forecastHours; i++) {
+        const t = new Date(firstHour.getTime() + i * 3600000);
+        const staminaValue = calcStaminaValueAt(data.stamina, startTime, t);
+        const fungusValue = calcFungusValueAt(
+          data.fungus.current,
+          data.fungus.max,
+          data.fungus.recoveryPerHour,
+          startTime,
+          t
+        );
+
+        html += `
+          <tr>
+            <td>${formatDateTime(t, false)}</td>
+            <td class="${staminaValue >= data.stamina.max ? 'full' : ''}">
+              ${staminaValue >= data.stamina.max ? `${staminaValue}（满）` : staminaValue}
+            </td>
+            <td class="${fungusValue >= data.fungus.max ? 'full' : ''}">
+              ${fungusValue >= data.fungus.max ? `${fungusValue.toFixed(1)}（满）` : fungusValue.toFixed(1)}
+            </td>
+          </tr>
+        `;
+      }
+
+      html += '</tbody>';
+      table.innerHTML = html;
+    }
+
+    function renderHonor(data) {
+      const plan = calculateHonorPlanDynamic(
+        data.honor.current,
+        data.honor.capacity,
+        data.honor.target,
+        data.honor.counts
+      );
+
+      const occupied =
+        data.honor.counts[7] +
+        data.honor.counts[8] +
+        data.honor.counts[9] +
+        data.honor.counts[10] +
+        data.honor.counts[11];
+
+      let html = `
+        <div class="summary-item">
+          <strong>当前荣誉值</strong>：${data.honor.current}；
+          <strong>当前群落上限</strong>：${data.honor.capacity}；
+          <strong>当前已占群落</strong>：${occupied}；
+          <strong>目标值</strong>：${data.honor.target}
+        </div>
+        <div class="summary-item">
+          <strong>下一个扩容节点</strong>：${plan.nextThresholdStart}
+          <span class="muted">（达到后群落上限 +2）</span>
+        </div>
+      `;
+
+      if (plan.reached) {
+        html += `
+          <div class="summary-item">
+            已达到目标。共替换低级群落为 11 级群落 <span class="warn">
+              ${plan.replaceDetail[7] + plan.replaceDetail[8] + plan.replaceDetail[9] + plan.replaceDetail[10]}
+            </span> 个。
+          </div>
+          <div class="summary-item">
+            替换明细：7级替换 ${plan.replaceDetail[7]} 个，8级替换 ${plan.replaceDetail[8]} 个，
+            9级替换 ${plan.replaceDetail[9]} 个，10级替换 ${plan.replaceDetail[10]} 个。
+          </div>
+          <div class="summary-item">
+            因荣誉增长触发扩容后，额外新增 11级群落 <span class="warn">${plan.added11}</span> 个；
+            群落上限累计增加 <span class="warn">${plan.capacityAdded}</span>。
+          </div>
+          <div class="summary-item">
+            最终荣誉值：<span class="full">${plan.finalHonor}</span>；
+            最终群落上限：<span class="full">${plan.finalCapacity}</span>；
+            最终已占群落：<span class="full">${plan.finalOccupied}</span>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="summary-item">
+            即使按优先顺序替换低级群落，并利用扩容新增 11级群落，仍无法达到目标。
+          </div>
+          <div class="summary-item">
+            替换明细：7级替换 ${plan.replaceDetail[7]} 个，8级替换 ${plan.replaceDetail[8]} 个，
+            9级替换 ${plan.replaceDetail[9]} 个，10级替换 ${plan.replaceDetail[10]} 个。
+          </div>
+          <div class="summary-item">
+            已额外新增 11级群落 <span class="warn">${plan.added11}</span> 个；
+            群落上限累计增加 <span class="warn">${plan.capacityAdded}</span>。
+          </div>
+          <div class="summary-item">
+            最终荣誉值：${plan.finalHonor}；
+            最终群落上限：${plan.finalCapacity}；
+            距离目标还差 <span class="warn">${plan.remaining}</span>。
+          </div>
+        `;
+      }
+
+      document.getElementById('honorSummary').innerHTML = html;
+    }
+
+    function calculate() {
+      try {
+        const data = getFormData();
+        const error = validateData(data);
+        if (error) {
+          alert(error);
+          return;
+        }
+
+        const startTime = new Date(data.currentTime);
+        if (Number.isNaN(startTime.getTime())) {
+          alert('当前时间格式不正确');
+          return;
+        }
+
+        renderSummary(data, startTime);
+        renderTable(data, startTime);
+        renderHonor(data);
+
+        document.getElementById('resultCard').style.display = 'block';
+        document.getElementById('honorCard').style.display = 'block';
+
+        saveData();
+      } catch (e) {
+        console.error(e);
+        alert('计算时出现错误，请检查输入内容');
+      }
+    }
+
+    function collectDataForSave() {
+      return {
+        currentTime: document.getElementById('currentTime').value,
+        forecastHours: document.getElementById('forecastHours').value,
+        staminaCurrent: document.getElementById('staminaCurrent').value,
+        staminaMax: document.getElementById('staminaMax').value,
+        staminaCycle: document.getElementById('staminaCycle').value,
+        fungusCurrent: document.getElementById('fungusCurrent').value,
+        fungusMax: document.getElementById('fungusMax').value,
+        honorCurrent: document.getElementById('honorCurrent').value,
+        honorCapacity: document.getElementById('honorCapacity').value,
+        honorTarget: document.getElementById('honorTarget').value,
+        group7: document.getElementById('group7').value,
+        group8: document.getElementById('group8').value,
+        group9: document.getElementById('group9').value,
+        group10: document.getElementById('group10').value,
+        group11: document.getElementById('group11').value
+      };
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(collectDataForSave()));
+    }
+
+    function loadData() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        document.getElementById('currentTime').value = toLocalInputValue(new Date());
+        updateStaminaCycle();
+        updateFungusRecovery();
+        return;
+      }
+
+      try {
+        const data = JSON.parse(raw);
+        Object.keys(data).forEach(key => {
+          const el = document.getElementById(key);
+          if (el) el.value = data[key];
+        });
+      } catch (e) {
+        document.getElementById('currentTime').value = toLocalInputValue(new Date());
+      }
+
+      updateStaminaCycle();
+      updateFungusRecovery();
+    }
+
+    function resetAll() {
+      if (!confirm('确定要清空并恢复默认值吗？')) return;
+
+      localStorage.removeItem(STORAGE_KEY);
+
+      document.getElementById('currentTime').value = toLocalInputValue(new Date());
+      document.getElementById('forecastHours').value = 24;
+
+      document.getElementById('staminaCurrent').value = 80;
+      document.getElementById('staminaMax').value = 100;
+      document.getElementById('staminaCycle').value = 360;
+
+      document.getElementById('fungusCurrent').value = 0;
+      document.getElementById('fungusMax').value = '76.8';
+
+      document.getElementById('honorCurrent').value = 0;
+      document.getElementById('honorCapacity').value = 0;
+      document.getElementById('honorTarget').value = '40000';
+      document.getElementById('group7').value = 0;
+      document.getElementById('group8').value = 0;
+      document.getElementById('group9').value = 0;
+      document.getElementById('group10').value = 0;
+      document.getElementById('group11').value = 0;
+
+      updateStaminaCycle();
+      updateFungusRecovery();
+
+      document.getElementById('resultCard').style.display = 'none';
+      document.getElementById('honorCard').style.display = 'none';
+
+      saveData();
+    }
+
+    function bindEvents() {
+      document.getElementById('btnFillNow').addEventListener('click', () => {
+        document.getElementById('currentTime').value = toLocalInputValue(new Date());
+        saveData();
+      });
+
+      document.getElementById('btnSave').addEventListener('click', saveData);
+      document.getElementById('btnReset').addEventListener('click', resetAll);
+      document.getElementById('btnCalculate').addEventListener('click', calculate);
+      document.getElementById('fungusMax').addEventListener('change', updateFungusRecovery);
+      document.getElementById('staminaMax').addEventListener('input', updateStaminaCycle);
+
+      document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', saveData);
+        el.addEventListener('change', saveData);
+      });
+    }
+
+    bindEvents();
+    loadData();
+  </script>
+</body>
+</html>
